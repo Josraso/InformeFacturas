@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<menu>
+    <group name="reports" title="informes" icon="fas fa-chart-bar">
+        <item menu="InformeFacturas" title="Informe Facturas" icon="fas fa-file-invoice" url="InformeFacturas">
+            <item menu="InformeFacturas" title="Informe de Facturas de Venta" icon="fas fa-file-invoice" url="InformeFacturas" />
+        </item>
+    </group>
+</menu>
