@@ -433,63 +433,76 @@ class InformeFacturas extends Controller
             // Crear una instancia del exportador
             $exportManager = new ExportManager();
 
-            // Configurar el documento PDF (usar PDF por defecto como el original)
+            // Configurar el documento PDF
             $exportManager->newDoc('PDF');
 
             // Título del documento
             $nombreEmpresa = $this->empresa ? $this->empresa->nombre : 'Empresa';
-            $titulo = $nombreEmpresa . ' - Informe de Facturas';
-            $subtitulo = 'Del ' . date('d/m/Y', strtotime($this->fechaDesde)) .
-                        ' al ' . date('d/m/Y', strtotime($this->fechaHasta));
+            $exportManager->addModelPage(
+                null,
+                null,
+                $nombreEmpresa . ' - Informe de Facturas',
+                'Del ' . date('d/m/Y', strtotime($this->fechaDesde)) . ' al ' . date('d/m/Y', strtotime($this->fechaHasta))
+            );
 
             // Definir las columnas
             $columns = [
-                'SERIE', 'Doc.', 'Albarán', 'Fecha', 'Cliente', 'CIF/NIF',
-                'Neto', '%IVA', 'IVA', '%RE', 'RE', 'IRPF', 'Total'
+                'codserie' => 'SERIE',
+                'codigo' => 'Doc.',
+                'codalbaran' => 'Albarán',
+                'fecha' => 'Fecha',
+                'cliente' => 'Cliente',
+                'cifnif' => 'CIF/NIF',
+                'neto' => 'Neto',
+                'piva' => '%IVA',
+                'totaliva' => 'IVA',
+                'pre' => '%RE',
+                'totalrecargo' => 'RE',
+                'totalirpf' => 'IRPF',
+                'total' => 'Total'
             ];
 
             // Preparar los datos
-            $rows = [];
+            $tableData = [];
             foreach ($this->facturasConIVA as $item) {
                 $factura = $item->factura;
 
-                $rows[] = [
-                    $factura->codserie,
-                    $factura->codigo,
-                    $factura->codalbaran ?? '',
-                    date('d/m/Y', strtotime($factura->fecha)),
-                    mb_substr($factura->nombrecliente, 0, 20),
-                    $factura->cifnif,
-                    number_format($factura->neto, 2, ',', '.'),
-                    number_format($item->porcentajeIVA, 0, ',', '.'),
-                    number_format($factura->totaliva, 2, ',', '.'),
-                    number_format($item->porcentajeRE, 2, ',', '.'),
-                    number_format($factura->totalrecargo, 2, ',', '.'),
-                    number_format($factura->totalirpf, 2, ',', '.'),
-                    number_format($factura->total, 2, ',', '.')
+                $tableData[] = [
+                    'codserie' => $factura->codserie,
+                    'codigo' => $factura->codigo,
+                    'codalbaran' => $factura->codalbaran ?? '',
+                    'fecha' => date('d/m/Y', strtotime($factura->fecha)),
+                    'cliente' => mb_substr($factura->nombrecliente, 0, 20),
+                    'cifnif' => $factura->cifnif,
+                    'neto' => number_format($factura->neto, 2, ',', '.'),
+                    'piva' => $item->porcentajeIVA,
+                    'totaliva' => number_format($factura->totaliva, 2, ',', '.'),
+                    'pre' => number_format($item->porcentajeRE, 2, ',', '.'),
+                    'totalrecargo' => number_format($factura->totalrecargo, 2, ',', '.'),
+                    'totalirpf' => number_format($factura->totalirpf, 2, ',', '.'),
+                    'total' => number_format($factura->total, 2, ',', '.')
                 ];
             }
 
             // Agregar fila de totales
-            $rows[] = [
-                '', '', '', '', '', 'TOTALES:',
-                number_format($this->totalNeto, 2, ',', '.'),
-                '',
-                number_format($this->totalIVA, 2, ',', '.'),
-                '',
-                number_format($this->totalRecargo, 2, ',', '.'),
-                number_format($this->totalIRPF, 2, ',', '.'),
-                number_format($this->totalGeneral, 2, ',', '.')
-            ];
-
-            // Configurar opciones
-            $options = [
-                'title' => $titulo,
-                'subtitle' => $subtitulo
+            $tableData[] = [
+                'codserie' => '',
+                'codigo' => '',
+                'codalbaran' => '',
+                'fecha' => '',
+                'cliente' => '',
+                'cifnif' => 'TOTALES:',
+                'neto' => number_format($this->totalNeto, 2, ',', '.'),
+                'piva' => '',
+                'totaliva' => number_format($this->totalIVA, 2, ',', '.'),
+                'pre' => '',
+                'totalrecargo' => number_format($this->totalRecargo, 2, ',', '.'),
+                'totalirpf' => number_format($this->totalIRPF, 2, ',', '.'),
+                'total' => number_format($this->totalGeneral, 2, ',', '.')
             ];
 
             // Generar la tabla
-            $exportManager->addTablePage($columns, $rows, $options);
+            $exportManager->addTablePage($columns, $tableData);
 
             // SOLUCIÓN PARA ABRIR EN NUEVA PESTAÑA
             $this->setTemplate(false);
