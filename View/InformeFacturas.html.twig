@@ -73,13 +73,13 @@
                         <div class="row mb-3">
                             <div class="col-md-6">
                                 <label for="cliente" class="form-label">Cliente</label>
-                                <select class="form-select" id="cliente" name="cliente">
+                                <select class="form-select select2" id="cliente" name="cliente" data-placeholder="Buscar cliente...">
                                     <option value="">Todos los clientes</option>
                                     {% if fsc.clientes is defined %}
                                         {% for cliente in fsc.clientes %}
                                             <option value="{{ cliente.codcliente }}"
                                                     {% if cliente.codcliente == fsc.clienteSeleccionado|default('') %}selected{% endif %}>
-                                                {{ cliente.codcliente }} - {{ cliente.razonsocial|default(cliente.nombre)|slice(0, 30) }}
+                                                {{ cliente.codcliente }} - {{ cliente.razonsocial|default(cliente.nombre) }}
                                             </option>
                                         {% endfor %}
                                     {% endif %}
@@ -316,7 +316,7 @@ function enviarFormularioExportacion(accion) {
     document.body.removeChild(form);
 }
 
-// Validación de fechas
+// Validación de fechas e inicialización de select2
 document.addEventListener('DOMContentLoaded', function() {
     const fechaDesde = document.getElementById('fecha_desde');
     const fechaHasta = document.getElementById('fecha_hasta');
@@ -336,11 +336,23 @@ document.addEventListener('DOMContentLoaded', function() {
         fechaHasta.addEventListener('change', validarFechas);
     }
 
-    // Mejorar el selector de clientes para búsqueda
-    const clienteSelect = document.getElementById('cliente');
-    if (clienteSelect && clienteSelect.options.length > 20) {
-        clienteSelect.setAttribute('data-live-search', 'true');
-        clienteSelect.setAttribute('data-size', '10');
+    // Inicializar select2 para el selector de clientes con buscador
+    const clienteSelect = $('#cliente');
+    if (clienteSelect.length && typeof $.fn.select2 !== 'undefined') {
+        clienteSelect.select2({
+            theme: 'bootstrap-5',
+            width: '100%',
+            placeholder: 'Buscar cliente...',
+            allowClear: true,
+            language: {
+                noResults: function() {
+                    return 'No se encontraron resultados';
+                },
+                searching: function() {
+                    return 'Buscando...';
+                }
+            }
+        });
     }
 });
 </script>

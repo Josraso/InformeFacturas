@@ -18,7 +18,6 @@ use FacturaScripts\Dinamic\Model\LineaFacturaCliente;
 use FacturaScripts\Core\Tools;
 use FacturaScripts\Dinamic\Lib\ExportManager;
 use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
-use Symfony\Component\HttpFoundation\Response;
 
 class InformeFacturas extends Controller
 {
@@ -345,11 +344,13 @@ class InformeFacturas extends Controller
         }
 
         try {
-            // Configurar headers para descarga usando Response
-            $response = new Response();
-            $response->headers->set('Content-Type', 'application/vnd.ms-excel; charset=utf-8');
-            $response->headers->set('Content-Disposition', 'attachment; filename="informe_facturas_' . date('Y-m-d') . '.xls"');
-            $response->headers->set('Cache-Control', 'max-age=0');
+            // Desactivar la plantilla
+            $this->setTemplate(false);
+
+            // Configurar headers para descarga
+            $this->response->headers->set('Content-Type', 'application/vnd.ms-excel; charset=utf-8');
+            $this->response->headers->set('Content-Disposition', 'attachment; filename="informe_facturas_' . date('Y-m-d') . '.xls"');
+            $this->response->headers->set('Cache-Control', 'max-age=0');
 
             ob_start();
             echo '<html><head><meta charset="UTF-8"></head><body>';
@@ -412,10 +413,7 @@ class InformeFacturas extends Controller
             echo '<br><p>Total de facturas: ' . count($this->facturas) . '</p>';
             echo '</body></html>';
 
-            $content = ob_get_clean();
-            $response->setContent($content);
-            $response->send();
-            exit;
+            $this->response->setContent(ob_get_clean());
         } catch (\Exception $e) {
             Tools::log()->error('Error exportando a Excel: ' . $e->getMessage());
         }
@@ -498,18 +496,18 @@ class InformeFacturas extends Controller
             // Generar la tabla
             $exportManager->addTablePage($columns, $rows, $options);
 
-            // Configurar respuesta para mostrar en nueva pestaña
-            $filename = 'informe_facturas_' . date('Y-m-d_H-i-s') . '.pdf';
+            // SOLUCIÓN PARA ABRIR EN NUEVA PESTAÑA
+            $this->setTemplate(false);
 
-            // Usar el objeto Response de Symfony
-            $response = new Response();
-            $response->headers->set('Content-Type', 'application/pdf');
-            $response->headers->set('Content-Disposition', 'inline; filename="' . $filename . '"');
-            $response->headers->set('Cache-Control', 'private, max-age=0, must-revalidate');
-            $response->headers->set('Pragma', 'public');
+            // Configurar headers para nueva pestaña
+            $filename = 'informe_facturas_' . date('Y-m-d_H-i-s') . '.pdf';
+            $this->response->headers->set('Content-Type', 'application/pdf');
+            $this->response->headers->set('Content-Disposition', 'inline; filename="' . $filename . '"');
+            $this->response->headers->set('Cache-Control', 'private, max-age=0, must-revalidate');
+            $this->response->headers->set('Pragma', 'public');
 
             // Mostrar el PDF
-            $exportManager->show($response);
+            $exportManager->show($this->response);
 
         } catch (\Exception $e) {
             Tools::log()->error('Error generando PDF: ' . $e->getMessage());
