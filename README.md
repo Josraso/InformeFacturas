@@ -89,7 +89,6 @@ InformeFacturas/
 │   └── InformeFacturas.html.twig  # Vista Twig con CSRF
 ├── XMLView/
 │   └── menu.xml                 # Menú simplificado
-├── Init.php                     # Inicialización del plugin
 ├── facturascripts.ini           # Configuración (v2.0)
 └── README.md                    # Este archivo
 ```
