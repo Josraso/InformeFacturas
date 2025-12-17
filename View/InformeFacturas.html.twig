@@ -99,10 +99,6 @@
                                         <i class="fas fa-file-excel"></i> Exportar Excel
                                     </button>
 
-                                    <button type="button" class="btn btn-danger me-2" onclick="exportarPDF()">
-                                        <i class="fas fa-file-pdf"></i> Exportar PDF
-                                    </button>
-
                                     <button type="button" class="btn btn-info" onclick="window.print()">
                                         <i class="fas fa-print"></i> Imprimir
                                     </button>
@@ -233,50 +229,6 @@
 function exportarExcel() {
     if (!validarExportacion()) return;
     enviarFormularioExportacion('exportar_excel');
-}
-
-function exportarPDF() {
-    if (!validarExportacion()) return;
-
-    // Mostrar mensaje de carga
-    const btnPdf = event.target;
-    const textoOriginal = btnPdf.innerHTML;
-    btnPdf.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generando PDF...';
-    btnPdf.disabled = true;
-
-    // Restaurar botón después de 5 segundos
-    setTimeout(function() {
-        btnPdf.innerHTML = textoOriginal;
-        btnPdf.disabled = false;
-    }, 5000);
-
-    // ABRIR EN NUEVA PESTAÑA
-    const form = document.createElement('form');
-    form.method = 'POST';
-    form.action = '{{ fsc.url() }}';
-    form.target = '_blank';
-
-    const campos = [
-        {name: 'action', value: 'exportar_pdf'},
-        {name: 'multireqtoken', value: '{{ formToken(false) }}'},
-        {name: 'fecha_desde', value: '{{ fsc.fechaDesde|default("")|e("js") }}'},
-        {name: 'fecha_hasta', value: '{{ fsc.fechaHasta|default("")|e("js") }}'},
-        {name: 'serie', value: '{{ fsc.serieSeleccionada|default("")|e("js") }}'},
-        {name: 'cliente', value: '{{ fsc.clienteSeleccionado|default("")|e("js") }}'},
-        {name: 'empresa', value: '{{ fsc.empresaSeleccionada|default("")|e("js") }}'}
-    ];
-
-    campos.forEach(function(campo) {
-        const input = document.createElement('input');
-        input.type = 'hidden';
-        input.name = campo.name;
-        input.value = campo.value;
-        form.appendChild(input);
-    });
-
-    document.body.appendChild(form);
-    form.submit();
-    document.body.removeChild(form);
 }
 
 function validarExportacion() {

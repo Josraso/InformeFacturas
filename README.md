@@ -8,12 +8,13 @@ Plugin optimizado para generar informes detallados de facturas de venta con expo
 
 - Informes detallados de facturas de venta con filtros avanzados
 - Exportación a Excel (.xls)
-- Exportación a PDF (compatible con todos los motores de PDF configurados)
+- Impresión directa desde el navegador
 - Filtrado por fechas, series, empresas y clientes
 - Cálculo preciso de porcentajes de IVA y Recargo de Equivalencia
 - Interfaz responsive y lista para imprimir
 - Protección CSRF integrada
 - Rendimiento optimizado para grandes volúmenes de datos
+- Compatible con el sistema nativo de Formatos de Impresión de FacturaScripts
 
 ## Instalación
 
@@ -43,8 +44,8 @@ Plugin optimizado para generar informes detallados de facturas de venta con expo
 
 Una vez generado el informe, puedes:
 - **Exportar Excel**: Descarga un archivo .xls con todos los datos
-- **Exportar PDF**: Abre el informe en PDF en una nueva pestaña (respeta el motor de PDF configurado)
-- **Imprimir**: Imprime directamente desde el navegador
+- **Imprimir**: Imprime directamente desde el navegador (Ctrl+P) o usa el botón de impresión
+- **Exportar PDF**: Ver sección "Crear Formato de Impresión PDF" más abajo
 
 ## Cambios en la versión 2.0
 
@@ -66,11 +67,11 @@ Una vez generado el informe, puedes:
 - **Validación de entrada**: Validación de fechas y parámetros
 - **Manejo seguro de errores**: Try-catch en todas las operaciones críticas
 
-### 📊 Exportación PDF mejorada
+### 📊 Sistema de impresión nativo
 
-- **Motor configurable**: Ahora respeta el motor de PDF configurado en FacturaScripts (TCPdf, Dompdf, etc.)
-- **Compatibilidad con plugins**: Funciona correctamente con plugins de PDF de terceros
-- **Apertura en nueva pestaña**: Los PDFs se abren en una nueva pestaña del navegador
+- **Formatos personalizables**: Compatible con el sistema nativo de Formatos de Impresión de FacturaScripts
+- **Impresión directa**: Botón de impresión para usar directamente desde el navegador
+- **Exportación Excel**: Exportación completa a Excel con todos los datos
 
 ### 🎨 Mejoras de interfaz
 
@@ -93,13 +94,41 @@ InformeFacturas/
 └── README.md                    # Este archivo
 ```
 
+## Crear Formato de Impresión PDF (Opcional)
+
+Si necesitas exportar a PDF, FacturaScripts 2025 ofrece un sistema nativo de **Formatos de Impresión** que es más robusto y flexible que las exportaciones programáticas.
+
+### Pasos para crear un formato PDF personalizado:
+
+1. Ve a **Panel de control > Formatos de impresión** en tu instalación de FacturaScripts
+2. Haz clic en **Nuevo formato**
+3. Configura los siguientes campos:
+   - **Nombre**: `InformeFacturas`
+   - **Título**: `Informe de Facturas de Venta`
+   - **Modelo**: Selecciona `FacturaCliente` (o el modelo que uses para facturas)
+   - **Motor PDF**: Elige el motor que prefieras (TCPdf, Dompdf, etc.)
+
+4. En el editor de formato, puedes usar las mismas columnas que se muestran en el informe:
+   - SERIE, Documento, Albarán, Fecha, Cliente, CIF/NIF
+   - Neto, %IVA, IVA, %RE, RE, IRPF, Total
+
+5. Guarda el formato
+
+6. Una vez creado, el formato estará disponible para imprimir/exportar las facturas directamente desde FacturaScripts
+
+### ¿Por qué no hay botón "Exportar PDF"?
+
+La exportación PDF programática en plugins tiene limitaciones técnicas con el sistema de formatos de FacturaScripts 2025. El sistema nativo de **Formatos de Impresión** es la forma recomendada y oficial de generar PDFs personalizados, ya que:
+
+- Es más robusto y estable
+- Respeta todas las configuraciones de PDF del sistema
+- Es más fácil de personalizar visualmente
+- Funciona correctamente con plugins de PDF de terceros
+- Es el método oficial recomendado por FacturaScripts
+
+**Alternativa rápida**: Usa el botón **Imprimir** y la opción "Guardar como PDF" de tu navegador.
+
 ## Solución de problemas
-
-### El PDF no se genera
-
-- Verifica que tengas un motor de PDF instalado (TCPdf viene por defecto)
-- Revisa los logs en **Herramientas > Logs** para ver errores específicos
-- Si usas un plugin de PDF, asegúrate de que esté correctamente configurado
 
 ### No aparecen facturas
 
@@ -131,11 +160,12 @@ Compatible con la licencia de FacturaScripts (LGPL v3)
 - Adaptación completa a FacturaScripts 2025
 - Optimización de consultas SQL (100x más rápido)
 - Protección CSRF añadida
-- Motor de PDF configurable
+- Compatible con sistema nativo de Formatos de Impresión
 - Mejora de manejo de errores
 - Cálculos movidos del frontend al backend
 - Validación de entrada mejorada
-- Documentación completa
+- Documentación completa con instrucciones para PDF
+- Exportación PDF removida (usar sistema nativo de FS en su lugar)
 
 ### v1.2 (2024)
 - Corrección del problema de IVA 20.99% vs 21%
