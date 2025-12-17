@@ -73,7 +73,6 @@ class InformeFacturas extends Controller
             // Validar token CSRF
             if (!$this->validateFormToken()) {
                 Tools::log()->warning('csrf-token-invalid');
-                $this->toolBox()->i18nLog()->warning('csrf-token-invalid');
                 return;
             }
 
@@ -129,7 +128,6 @@ class InformeFacturas extends Controller
         // Validar fechas
         if (!$this->validarFechas()) {
             Tools::log()->warning('invalid-date-range');
-            $this->toolBox()->i18nLog()->warning('Rango de fechas inválido');
         }
     }
 
@@ -176,7 +174,6 @@ class InformeFacturas extends Controller
             $this->clientes = $clienteModel->all([], ['nombre' => 'ASC'], 0, 0);
         } catch (\Exception $e) {
             Tools::log()->error('Error cargando datos de filtros: ' . $e->getMessage());
-            $this->toolBox()->i18nLog()->error('Error cargando filtros: ' . $e->getMessage());
         }
     }
 
@@ -205,13 +202,9 @@ class InformeFacturas extends Controller
 
             if (empty($this->facturas)) {
                 Tools::log()->info('No se encontraron facturas con los criterios seleccionados');
-                $this->toolBox()->i18nLog()->info('No se encontraron facturas');
-            } else {
-                $this->toolBox()->i18nLog()->info('Se encontraron ' . count($this->facturas) . ' facturas');
             }
         } catch (\Exception $e) {
             Tools::log()->error('Error generando informe: ' . $e->getMessage());
-            $this->toolBox()->i18nLog()->error('Error generando informe: ' . $e->getMessage());
             $this->facturas = [];
         }
     }
@@ -520,7 +513,6 @@ class InformeFacturas extends Controller
 
         } catch (\Exception $e) {
             Tools::log()->error('Error generando PDF: ' . $e->getMessage());
-            $this->toolBox()->i18nLog()->error('Error generando PDF: ' . $e->getMessage());
         }
     }
 }
