@@ -163,22 +163,17 @@ class InformeFacturas extends Controller
     private function cargarDatosFiltros(): void
     {
         try {
-            // Cargar series para el filtro
+            // Cargar TODAS las series
             $serieModel = new Serie();
             $this->series = $serieModel->all([], ['codserie' => 'ASC'], 0, 0);
 
-            // Cargar empresas para el filtro
+            // Cargar TODAS las empresas
             $empresaModel = new Empresa();
             $this->empresas = $empresaModel->all([], ['nombrecorto' => 'ASC'], 0, 0);
 
-            // Cargar clientes para el filtro (los 200 más recientes)
+            // Cargar TODOS los clientes (sin límite)
             $clienteModel = new Cliente();
-            $this->clientes = $clienteModel->all([], ['nombre' => 'ASC'], 0, 200);
-
-            // Debug: log de cuántos se cargaron
-            Tools::log()->info('Datos cargados - Series: ' . count($this->series) .
-                              ', Empresas: ' . count($this->empresas) .
-                              ', Clientes: ' . count($this->clientes));
+            $this->clientes = $clienteModel->all([], ['nombre' => 'ASC'], 0, 0);
         } catch (\Exception $e) {
             Tools::log()->error('Error cargando datos de filtros: ' . $e->getMessage());
             $this->toolBox()->i18nLog()->error('Error cargando filtros: ' . $e->getMessage());
@@ -198,9 +193,6 @@ class InformeFacturas extends Controller
 
             // Obtener facturas
             $this->facturas = $facturaModel->all($where, ['fecha' => 'ASC', 'numero' => 'ASC'], 0, 0);
-
-            // Debug
-            Tools::log()->info('Facturas encontradas: ' . count($this->facturas));
 
             // OPTIMIZACIÓN: Calcular porcentajes de IVA/RE de todas las facturas en una sola consulta
             $this->calcularPorcentajesIVA();
@@ -278,10 +270,8 @@ class InformeFacturas extends Controller
                 WHERE idfactura IN (" . implode(',', $idsFacturas) . ")
                 GROUP BY idfactura";
 
-        $db = Tools::dataBase();
         $porcentajes = [];
-
-        foreach ($db->select($sql) as $row) {
+        foreach ($this->dataBase->select($sql) as $row) {
             $porcentajes[$row['idfactura']] = [
                 'iva' => round((float)$row['iva'], 0), // Redondear a entero (21.00 → 21)
                 'recargo' => round((float)$row['recargo'], 2)
