@@ -54,10 +54,12 @@ class InformeFacturas extends Controller
 
     /**
      * Ejecuta la lógica privada del controlador
-     * Nueva arquitectura FacturaScripts 2025
+     * Arquitectura FacturaScripts 2025 (compatible con privateCore)
      */
-    public function exec()
+    public function privateCore(&$response, $user, $permissions)
     {
+        parent::privateCore($response, $user, $permissions);
+
         // Inicializar filtros con valores por defecto
         $this->inicializarFiltros();
 
@@ -67,10 +69,11 @@ class InformeFacturas extends Controller
         // Procesar acciones POST
         $action = $this->request->request->get('action', '');
 
-        if ($this->request->isMethod('POST')) {
+        if ($this->request->isMethod('POST') && !empty($action)) {
             // Validar token CSRF
             if (!$this->validateFormToken()) {
                 Tools::log()->warning('csrf-token-invalid');
+                $this->toolBox()->i18nLog()->warning('csrf-token-invalid');
                 return;
             }
 
@@ -93,9 +96,6 @@ class InformeFacturas extends Controller
                     return; // No renderizar vista
             }
         }
-
-        // Renderizar la vista
-        $this->setTemplate('InformeFacturas');
     }
 
     /**
@@ -129,6 +129,7 @@ class InformeFacturas extends Controller
         // Validar fechas
         if (!$this->validarFechas()) {
             Tools::log()->warning('invalid-date-range');
+            $this->toolBox()->i18nLog()->warning('Rango de fechas inválido');
         }
     }
 
@@ -172,9 +173,15 @@ class InformeFacturas extends Controller
 
             // Cargar clientes para el filtro (los 200 más recientes)
             $clienteModel = new Cliente();
-            $this->clientes = $clienteModel->all([], ['razonsocial' => 'ASC'], 0, 200);
+            $this->clientes = $clienteModel->all([], ['nombre' => 'ASC'], 0, 200);
+
+            // Debug: log de cuántos se cargaron
+            Tools::log()->info('Datos cargados - Series: ' . count($this->series) .
+                              ', Empresas: ' . count($this->empresas) .
+                              ', Clientes: ' . count($this->clientes));
         } catch (\Exception $e) {
             Tools::log()->error('Error cargando datos de filtros: ' . $e->getMessage());
+            $this->toolBox()->i18nLog()->error('Error cargando filtros: ' . $e->getMessage());
         }
     }
 
@@ -192,6 +199,9 @@ class InformeFacturas extends Controller
             // Obtener facturas
             $this->facturas = $facturaModel->all($where, ['fecha' => 'ASC', 'numero' => 'ASC'], 0, 0);
 
+            // Debug
+            Tools::log()->info('Facturas encontradas: ' . count($this->facturas));
+
             // OPTIMIZACIÓN: Calcular porcentajes de IVA/RE de todas las facturas en una sola consulta
             $this->calcularPorcentajesIVA();
 
@@ -203,9 +213,13 @@ class InformeFacturas extends Controller
 
             if (empty($this->facturas)) {
                 Tools::log()->info('No se encontraron facturas con los criterios seleccionados');
+                $this->toolBox()->i18nLog()->info('No se encontraron facturas');
+            } else {
+                $this->toolBox()->i18nLog()->info('Se encontraron ' . count($this->facturas) . ' facturas');
             }
         } catch (\Exception $e) {
             Tools::log()->error('Error generando informe: ' . $e->getMessage());
+            $this->toolBox()->i18nLog()->error('Error generando informe: ' . $e->getMessage());
             $this->facturas = [];
         }
     }
@@ -516,7 +530,7 @@ class InformeFacturas extends Controller
 
         } catch (\Exception $e) {
             Tools::log()->error('Error generando PDF: ' . $e->getMessage());
-            Tools::log()->warning('error-generating-pdf');
+            $this->toolBox()->i18nLog()->error('Error generando PDF: ' . $e->getMessage());
         }
     }
 }
