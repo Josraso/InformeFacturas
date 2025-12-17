@@ -15,25 +15,26 @@
                 <div class="card-body">
                     <!-- Formulario de filtros -->
                     <form method="post" class="form-horizontal">
+                        {{ formToken() }}
                         <input type="hidden" name="action" value="generar">
-                        
+
                         <div class="row mb-3">
                             <div class="col-md-6">
                                 <div class="row">
                                     <div class="col-md-6 mb-3">
                                         <label for="fecha_desde" class="form-label">Fecha Desde</label>
-                                        <input type="date" class="form-control" id="fecha_desde" name="fecha_desde" 
+                                        <input type="date" class="form-control" id="fecha_desde" name="fecha_desde"
                                                value="{{ fsc.fechaDesde|default('') }}" required>
                                     </div>
-                                    
+
                                     <div class="col-md-6 mb-3">
                                         <label for="fecha_hasta" class="form-label">Fecha Hasta</label>
-                                        <input type="date" class="form-control" id="fecha_hasta" name="fecha_hasta" 
+                                        <input type="date" class="form-control" id="fecha_hasta" name="fecha_hasta"
                                                value="{{ fsc.fechaHasta|default('') }}" required>
                                     </div>
                                 </div>
                             </div>
-                            
+
                             <div class="col-md-6">
                                 <div class="row">
                                     <div class="col-md-6 mb-3">
@@ -42,7 +43,7 @@
                                             <option value="">Todas las series</option>
                                             {% if fsc.series is defined %}
                                                 {% for serie in fsc.series %}
-                                                    <option value="{{ serie.codserie }}" 
+                                                    <option value="{{ serie.codserie }}"
                                                             {% if serie.codserie == fsc.serieSeleccionada|default('') %}selected{% endif %}>
                                                         {{ serie.codserie }}{% if serie.descripcion is defined and serie.descripcion %} - {{ serie.descripcion }}{% endif %}
                                                     </option>
@@ -50,14 +51,14 @@
                                             {% endif %}
                                         </select>
                                     </div>
-                                    
+
                                     <div class="col-md-6 mb-3">
                                         <label for="empresa" class="form-label">Empresa</label>
                                         <select class="form-select" id="empresa" name="empresa">
                                             <option value="">Todas las empresas</option>
                                             {% if fsc.empresas is defined %}
                                                 {% for empresa in fsc.empresas %}
-                                                    <option value="{{ empresa.idempresa }}" 
+                                                    <option value="{{ empresa.idempresa }}"
                                                             {% if empresa.idempresa == fsc.empresaSeleccionada|default('') %}selected{% endif %}>
                                                         {{ empresa.nombrecorto|default(empresa.nombre) }}
                                                     </option>
@@ -68,7 +69,7 @@
                                 </div>
                             </div>
                         </div>
-                        
+
                         <div class="row mb-3">
                             <div class="col-md-6">
                                 <label for="cliente" class="form-label">Cliente</label>
@@ -76,7 +77,7 @@
                                     <option value="">Todos los clientes</option>
                                     {% if fsc.clientes is defined %}
                                         {% for cliente in fsc.clientes %}
-                                            <option value="{{ cliente.codcliente }}" 
+                                            <option value="{{ cliente.codcliente }}"
                                                     {% if cliente.codcliente == fsc.clienteSeleccionado|default('') %}selected{% endif %}>
                                                 {{ cliente.codcliente }} - {{ cliente.razonsocial|default(cliente.nombre)|slice(0, 30) }}
                                             </option>
@@ -85,22 +86,22 @@
                                 </select>
                             </div>
                         </div>
-                        
+
                         <div class="row">
                             <div class="col-12">
                                 <button type="submit" class="btn btn-primary me-2">
                                     <i class="fas fa-search"></i> Generar Informe
                                 </button>
-                                
+
                                 {% if fsc.facturas is defined and fsc.facturas|length > 0 %}
                                     <button type="button" class="btn btn-success me-2" onclick="exportarExcel()">
                                         <i class="fas fa-file-excel"></i> Exportar Excel
                                     </button>
-                                    
+
                                     <button type="button" class="btn btn-danger me-2" onclick="exportarPDF()">
                                         <i class="fas fa-file-pdf"></i> Exportar PDF
                                     </button>
-                                    
+
                                     <button type="button" class="btn btn-info" onclick="window.print()">
                                         <i class="fas fa-print"></i> Imprimir
                                     </button>
@@ -152,7 +153,9 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for factura in fsc.facturas %}
+                                {# OPTIMIZACIÓN: Usar los datos precalculados del controlador #}
+                                {% for item in fsc.facturasConIVA %}
+                                {% set factura = item.factura %}
                                 <tr>
                                     <td>{{ factura.codserie|default('') }}</td>
                                     <td>{{ factura.codigo|default('') }}</td>
@@ -164,34 +167,9 @@
                                     </td>
                                     <td>{{ factura.cifnif|default('') }}</td>
                                     <td class="text-end">{{ factura.neto|default(0)|number_format(2, ',', '.') }}</td>
-                                    <td class="text-end">
-                                        {% set neto = factura.neto|default(0) %}
-                                        {% set totaliva = factura.totaliva|default(0) %}
-                                        {% if neto != 0 %}
-                                            {% set porcentaje = (totaliva / neto * 100) %}
-                                            {% if porcentaje > 20.5 and porcentaje < 21.5 %}
-                                                21
-                                            {% elseif porcentaje > 9.5 and porcentaje < 10.5 %}
-                                                10
-                                            {% elseif porcentaje > 3.5 and porcentaje < 4.5 %}
-                                                4
-                                            {% else %}
-                                                {{ porcentaje|round(0) }}
-                                            {% endif %}
-                                        {% else %}
-                                            0
-                                        {% endif %}
-                                    </td>
+                                    <td class="text-end">{{ item.porcentajeIVA|number_format(0, ',', '.') }}</td>
                                     <td class="text-end">{{ factura.totaliva|default(0)|number_format(2, ',', '.') }}</td>
-                                    <td class="text-end">
-                                        {% set neto = factura.neto|default(0) %}
-                                        {% set totalrecargo = factura.totalrecargo|default(0) %}
-                                        {% if neto != 0 %}
-                                            {{ (totalrecargo / neto * 100)|number_format(2, ',', '.') }}
-                                        {% else %}
-                                            0,00
-                                        {% endif %}
-                                    </td>
+                                    <td class="text-end">{{ item.porcentajeRE|number_format(2, ',', '.') }}</td>
                                     <td class="text-end">{{ factura.totalrecargo|default(0)|number_format(2, ',', '.') }}</td>
                                     <td class="text-end">{{ factura.totalirpf|default(0)|number_format(2, ',', '.') }}</td>
                                     <td class="text-end"><strong>{{ factura.total|default(0)|number_format(2, ',', '.') }}</strong></td>
@@ -253,34 +231,35 @@ function exportarExcel() {
 
 function exportarPDF() {
     if (!validarExportacion()) return;
-    
+
     // Mostrar mensaje de carga
     const btnPdf = event.target;
     const textoOriginal = btnPdf.innerHTML;
     btnPdf.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generando PDF...';
     btnPdf.disabled = true;
-    
+
     // Restaurar botón después de 5 segundos
     setTimeout(function() {
         btnPdf.innerHTML = textoOriginal;
         btnPdf.disabled = false;
     }, 5000);
-    
-    // ABRIR EN NUEVA PESTAÑA - SOLUCIÓN JAVASCRIPT
+
+    // ABRIR EN NUEVA PESTAÑA
     const form = document.createElement('form');
     form.method = 'POST';
     form.action = '{{ fsc.url() }}';
-    form.target = '_blank'; // ESTO HACE QUE SE ABRA EN NUEVA PESTAÑA
-    
+    form.target = '_blank';
+
     const campos = [
         {name: 'action', value: 'exportar_pdf'},
+        {name: 'multireqtoken', value: '{{ formToken(false) }}'},
         {name: 'fecha_desde', value: '{{ fsc.fechaDesde|default("")|e("js") }}'},
         {name: 'fecha_hasta', value: '{{ fsc.fechaHasta|default("")|e("js") }}'},
         {name: 'serie', value: '{{ fsc.serieSeleccionada|default("")|e("js") }}'},
         {name: 'cliente', value: '{{ fsc.clienteSeleccionado|default("")|e("js") }}'},
         {name: 'empresa', value: '{{ fsc.empresaSeleccionada|default("")|e("js") }}'}
     ];
-    
+
     campos.forEach(function(campo) {
         const input = document.createElement('input');
         input.type = 'hidden';
@@ -288,7 +267,7 @@ function exportarPDF() {
         input.value = campo.value;
         form.appendChild(input);
     });
-    
+
     document.body.appendChild(form);
     form.submit();
     document.body.removeChild(form);
@@ -300,7 +279,7 @@ function validarExportacion() {
     {% else %}
         const facturas = 0;
     {% endif %}
-    
+
     if (facturas === 0) {
         alert('No hay facturas para exportar. Genera primero el informe.');
         return false;
@@ -312,17 +291,18 @@ function enviarFormularioExportacion(accion) {
     const form = document.createElement('form');
     form.method = 'POST';
     form.action = '{{ fsc.url() }}';
-    
+
     // Crear campos ocultos
     const campos = [
         {name: 'action', value: accion},
+        {name: 'multireqtoken', value: '{{ formToken(false) }}'},
         {name: 'fecha_desde', value: '{{ fsc.fechaDesde|default("")|e("js") }}'},
         {name: 'fecha_hasta', value: '{{ fsc.fechaHasta|default("")|e("js") }}'},
         {name: 'serie', value: '{{ fsc.serieSeleccionada|default("")|e("js") }}'},
         {name: 'cliente', value: '{{ fsc.clienteSeleccionado|default("")|e("js") }}'},
         {name: 'empresa', value: '{{ fsc.empresaSeleccionada|default("")|e("js") }}'}
     ];
-    
+
     campos.forEach(function(campo) {
         const input = document.createElement('input');
         input.type = 'hidden';
@@ -330,7 +310,7 @@ function enviarFormularioExportacion(accion) {
         input.value = campo.value;
         form.appendChild(input);
     });
-    
+
     document.body.appendChild(form);
     form.submit();
     document.body.removeChild(form);
@@ -340,7 +320,7 @@ function enviarFormularioExportacion(accion) {
 document.addEventListener('DOMContentLoaded', function() {
     const fechaDesde = document.getElementById('fecha_desde');
     const fechaHasta = document.getElementById('fecha_hasta');
-    
+
     function validarFechas() {
         if (fechaDesde.value && fechaHasta.value) {
             if (fechaDesde.value > fechaHasta.value) {
@@ -350,12 +330,12 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     }
-    
+
     if (fechaDesde && fechaHasta) {
         fechaDesde.addEventListener('change', validarFechas);
         fechaHasta.addEventListener('change', validarFechas);
     }
-    
+
     // Mejorar el selector de clientes para búsqueda
     const clienteSelect = document.getElementById('cliente');
     if (clienteSelect && clienteSelect.options.length > 20) {
@@ -370,72 +350,72 @@ document.addEventListener('DOMContentLoaded', function() {
     .d-print-none {
         display: none !important;
     }
-    
+
     .d-print-block {
         display: block !important;
     }
-    
+
     .card {
         border: none !important;
         box-shadow: none !important;
     }
-    
+
     .card-header {
         background: none !important;
         border: none !important;
         padding: 10px 0 !important;
     }
-    
+
     .table {
         font-size: 0.75rem !important;
     }
-    
+
     .table th,
     .table td {
         padding: 0.25rem !important;
         border: 1px solid #000 !important;
     }
-    
+
     .table thead th {
         background-color: #f8f9fa !important;
         font-weight: bold !important;
         -webkit-print-color-adjust: exact !important;
         color-adjust: exact !important;
     }
-    
+
     .table tfoot th {
         background-color: #e9ecef !important;
         font-weight: bold !important;
         -webkit-print-color-adjust: exact !important;
         color-adjust: exact !important;
     }
-    
+
     .container-fluid {
         max-width: none !important;
         padding: 0 !important;
         margin: 0 !important;
     }
-    
+
     .row {
         margin: 0 !important;
     }
-    
+
     .col-12 {
         padding: 0 !important;
     }
-    
+
     body {
         font-size: 12px !important;
     }
-    
+
     h4, h5 {
         margin: 5px 0 !important;
     }
-    
+
     .text-end {
         text-align: right !important;
     }
-    
+
     .text-center {
         text-align: center !important;
     }
@@ -447,33 +427,33 @@ document.addEventListener('DOMContentLoaded', function() {
         max-height: 70vh;
         overflow-y: auto;
     }
-    
+
     .sticky-top {
         position: sticky;
         top: 0;
         z-index: 10;
     }
-    
+
     .table td {
         white-space: nowrap;
     }
-    
+
     .table td[title] {
         cursor: help;
     }
-    
+
     .card {
         box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
     }
-    
+
     .btn {
         border-radius: 0.375rem;
     }
-    
+
     .form-control, .form-select {
         border-radius: 0.375rem;
     }
-    
+
     .alert {
         border-radius: 0.5rem;
     }
@@ -484,16 +464,16 @@ document.addEventListener('DOMContentLoaded', function() {
     .table-responsive {
         font-size: 0.875rem;
     }
-    
+
     .card-body {
         padding: 1rem;
     }
-    
+
     .btn {
         margin-bottom: 0.5rem;
         width: 100%;
     }
-    
+
     .row .col-md-6 {
         margin-bottom: 1rem;
     }
