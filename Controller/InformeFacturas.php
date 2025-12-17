@@ -86,6 +86,12 @@ class InformeFacturas extends Controller
                     $this->generarInforme();
                     $this->exportarExcel();
                     return; // No renderizar vista
+
+                case 'exportar_pdf':
+                    $this->procesarFiltros();
+                    $this->generarInforme();
+                    $this->exportarPDF();
+                    return; // No renderizar vista
             }
         }
     }
@@ -413,4 +419,93 @@ class InformeFacturas extends Controller
         }
     }
 
+    /**
+     * Exporta el informe a PDF
+     */
+    private function exportarPDF(): void
+    {
+        if (empty($this->facturas)) {
+            Tools::log()->warning('No hay facturas para exportar');
+            return;
+        }
+
+        try {
+            // Crear una instancia del exportador
+            $exportManager = new ExportManager();
+
+            // Configurar el documento PDF
+            $exportManager->newDoc('PDF');
+
+            // Título del documento
+            $nombreEmpresa = $this->empresa ? $this->empresa->nombre : 'Empresa';
+            $titulo = $nombreEmpresa . ' - Informe de Facturas';
+            $subtitulo = 'Del ' . date('d/m/Y', strtotime($this->fechaDesde)) .
+                        ' al ' . date('d/m/Y', strtotime($this->fechaHasta));
+
+            // Definir las columnas
+            $columns = [
+                'SERIE', 'Doc.', 'Albarán', 'Fecha', 'Cliente', 'CIF/NIF',
+                'Neto', '%IVA', 'IVA', '%RE', 'RE', 'IRPF', 'Total'
+            ];
+
+            // Preparar los datos
+            $rows = [];
+            foreach ($this->facturasConIVA as $item) {
+                $factura = $item->factura;
+
+                $rows[] = [
+                    $factura->codserie,
+                    $factura->codigo,
+                    $factura->codalbaran ?? '',
+                    date('d/m/Y', strtotime($factura->fecha)),
+                    mb_substr($factura->nombrecliente, 0, 20),
+                    $factura->cifnif,
+                    number_format($factura->neto, 2, ',', '.'),
+                    number_format($item->porcentajeIVA, 0, ',', '.'),
+                    number_format($factura->totaliva, 2, ',', '.'),
+                    number_format($item->porcentajeRE, 2, ',', '.'),
+                    number_format($factura->totalrecargo, 2, ',', '.'),
+                    number_format($factura->totalirpf, 2, ',', '.'),
+                    number_format($factura->total, 2, ',', '.')
+                ];
+            }
+
+            // Agregar fila de totales
+            $rows[] = [
+                '', '', '', '', '', 'TOTALES:',
+                number_format($this->totalNeto, 2, ',', '.'),
+                '',
+                number_format($this->totalIVA, 2, ',', '.'),
+                '',
+                number_format($this->totalRecargo, 2, ',', '.'),
+                number_format($this->totalIRPF, 2, ',', '.'),
+                number_format($this->totalGeneral, 2, ',', '.')
+            ];
+
+            // Configurar opciones
+            $options = [
+                'title' => $titulo,
+                'subtitle' => $subtitulo
+            ];
+
+            // Generar la tabla
+            $exportManager->addTablePage($columns, $rows, $options);
+
+            // SOLUCIÓN PARA ABRIR EN NUEVA PESTAÑA
+            $this->setTemplate(false);
+
+            // Configurar headers para nueva pestaña
+            $filename = 'informe_facturas_' . date('Y-m-d_H-i-s') . '.pdf';
+            $this->response->headers->set('Content-Type', 'application/pdf');
+            $this->response->headers->set('Content-Disposition', 'inline; filename="' . $filename . '"');
+            $this->response->headers->set('Cache-Control', 'private, max-age=0, must-revalidate');
+            $this->response->headers->set('Pragma', 'public');
+
+            // Mostrar el PDF
+            $exportManager->show($this->response);
+
+        } catch (\Exception $e) {
+            Tools::log()->error('Error al generar PDF: ' . $e->getMessage());
+        }
+    }
 }
