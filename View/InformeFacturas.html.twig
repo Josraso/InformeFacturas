@@ -72,18 +72,23 @@
 
                         <div class="row mb-3">
                             <div class="col-md-6">
-                                <label for="cliente" class="form-label">Cliente</label>
-                                <select class="form-select select2" id="cliente" name="cliente" data-placeholder="Buscar cliente...">
-                                    <option value="">Todos los clientes</option>
+                                <label for="cliente" class="form-label">Cliente (escribe para buscar)</label>
+                                <input type="text"
+                                       class="form-control"
+                                       id="cliente-search"
+                                       list="clientes-datalist"
+                                       placeholder="Escribe para buscar cliente..."
+                                       value="{% if fsc.clienteSeleccionado %}{{ fsc.clienteSeleccionado }}{% endif %}">
+                                <input type="hidden" id="cliente" name="cliente" value="{{ fsc.clienteSeleccionado|default('') }}">
+                                <datalist id="clientes-datalist">
                                     {% if fsc.clientes is defined %}
                                         {% for cliente in fsc.clientes %}
-                                            <option value="{{ cliente.codcliente }}"
-                                                    {% if cliente.codcliente == fsc.clienteSeleccionado|default('') %}selected{% endif %}>
+                                            <option value="{{ cliente.codcliente }}" data-label="{{ cliente.codcliente }} - {{ cliente.razonsocial|default(cliente.nombre) }}">
                                                 {{ cliente.codcliente }} - {{ cliente.razonsocial|default(cliente.nombre) }}
                                             </option>
                                         {% endfor %}
                                     {% endif %}
-                                </select>
+                                </datalist>
                             </div>
                         </div>
 
@@ -177,15 +182,25 @@
                                 {% endfor %}
                             </tbody>
                             <tfoot class="table-secondary">
-                                <tr>
+                                <tr class="table-info">
                                     <th colspan="6" class="text-end"><strong>TOTALES:</strong></th>
-                                    <th class="text-end"><strong>{{ fsc.totalNeto|default(0)|number_format(2, ',', '.') }}</strong></th>
+                                    <th class="text-end"><strong>{{ fsc.totalNeto|default(0)|number_format(2, ',', '.') }} €</strong></th>
                                     <th></th>
-                                    <th class="text-end"><strong>{{ fsc.totalIVA|default(0)|number_format(2, ',', '.') }}</strong></th>
+                                    <th class="text-end"><strong>{{ fsc.totalIVA|default(0)|number_format(2, ',', '.') }} €</strong></th>
                                     <th></th>
-                                    <th class="text-end"><strong>{{ fsc.totalRecargo|default(0)|number_format(2, ',', '.') }}</strong></th>
-                                    <th class="text-end"><strong>{{ fsc.totalIRPF|default(0)|number_format(2, ',', '.') }}</strong></th>
-                                    <th class="text-end"><strong>{{ fsc.totalGeneral|default(0)|number_format(2, ',', '.') }}</strong></th>
+                                    <th class="text-end"><strong>{{ fsc.totalRecargo|default(0)|number_format(2, ',', '.') }} €</strong></th>
+                                    <th class="text-end"><strong>{{ fsc.totalIRPF|default(0)|number_format(2, ',', '.') }} €</strong></th>
+                                    <th class="text-end bg-success text-white"><strong>{{ fsc.totalGeneral|default(0)|number_format(2, ',', '.') }} €</strong></th>
+                                </tr>
+                                <tr class="table-light">
+                                    <th colspan="13" class="text-center small">
+                                        <i class="fas fa-info-circle"></i>
+                                        Neto: {{ fsc.totalNeto|default(0)|number_format(2, ',', '.') }} € |
+                                        IVA: {{ fsc.totalIVA|default(0)|number_format(2, ',', '.') }} € |
+                                        Recargo: {{ fsc.totalRecargo|default(0)|number_format(2, ',', '.') }} € |
+                                        IRPF: {{ fsc.totalIRPF|default(0)|number_format(2, ',', '.') }} € |
+                                        <strong>TOTAL: {{ fsc.totalGeneral|default(0)|number_format(2, ',', '.') }} €</strong>
+                                    </th>
                                 </tr>
                             </tfoot>
                         </table>
@@ -316,7 +331,7 @@ function enviarFormularioExportacion(accion) {
     document.body.removeChild(form);
 }
 
-// Validación de fechas e inicialización de select2
+// Validación de fechas y buscador de clientes
 document.addEventListener('DOMContentLoaded', function() {
     const fechaDesde = document.getElementById('fecha_desde');
     const fechaHasta = document.getElementById('fecha_hasta');
@@ -336,23 +351,40 @@ document.addEventListener('DOMContentLoaded', function() {
         fechaHasta.addEventListener('change', validarFechas);
     }
 
-    // Inicializar select2 para el selector de clientes con buscador
-    const clienteSelect = $('#cliente');
-    if (clienteSelect.length && typeof $.fn.select2 !== 'undefined') {
-        clienteSelect.select2({
-            theme: 'bootstrap-5',
-            width: '100%',
-            placeholder: 'Buscar cliente...',
-            allowClear: true,
-            language: {
-                noResults: function() {
-                    return 'No se encontraron resultados';
-                },
-                searching: function() {
-                    return 'Buscando...';
+    // Buscador de clientes con datalist HTML5 nativo
+    const clienteSearch = document.getElementById('cliente-search');
+    const clienteHidden = document.getElementById('cliente');
+
+    if (clienteSearch && clienteHidden) {
+        // Sincronizar el input visible con el hidden
+        clienteSearch.addEventListener('input', function() {
+            const value = this.value;
+            // Buscar si el valor coincide con alguna opción del datalist
+            const options = document.querySelectorAll('#clientes-datalist option');
+            let found = false;
+
+            options.forEach(function(option) {
+                if (option.value === value || option.getAttribute('data-label') === value) {
+                    clienteHidden.value = option.value;
+                    found = true;
                 }
+            });
+
+            // Si no se encuentra, limpiar el valor oculto (significa "todos")
+            if (!found && value === '') {
+                clienteHidden.value = '';
             }
         });
+
+        // Si hay un valor preseleccionado, mostrarlo con el label completo
+        if (clienteHidden.value) {
+            const options = document.querySelectorAll('#clientes-datalist option');
+            options.forEach(function(option) {
+                if (option.value === clienteHidden.value) {
+                    clienteSearch.value = option.getAttribute('data-label') || option.value;
+                }
+            });
+        }
     }
 });
 </script>

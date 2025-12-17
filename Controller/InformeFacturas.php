@@ -421,7 +421,6 @@ class InformeFacturas extends Controller
 
     /**
      * Exporta el informe a PDF
-     * CORREGIDO: Ahora usa el motor de PDF configurado en el sistema
      */
     private function exportarPDF(): void
     {
@@ -434,12 +433,8 @@ class InformeFacturas extends Controller
             // Crear una instancia del exportador
             $exportManager = new ExportManager();
 
-            // CORRECCIÓN CRÍTICA: Obtener el motor de PDF configurado
-            // Si hay un plugin de PDF instalado, usará ese motor
-            $pdfOption = Tools::settings('default', 'export_pdf', 'PDF');
-
-            // Configurar el documento PDF con el motor configurado
-            $exportManager->newDoc($pdfOption);
+            // Configurar el documento PDF (usar PDF por defecto como el original)
+            $exportManager->newDoc('PDF');
 
             // Título del documento
             $nombreEmpresa = $this->empresa ? $this->empresa->nombre : 'Empresa';
