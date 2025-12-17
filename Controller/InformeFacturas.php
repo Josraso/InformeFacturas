@@ -433,22 +433,27 @@ class InformeFacturas extends Controller
             // Crear una instancia del exportador
             $exportManager = new ExportManager();
 
-            // Configurar el documento PDF
-            $exportManager->newDoc('PDF');
+            // Configurar orientación horizontal para que quepan todas las columnas
+            $exportManager->setOrientation('landscape');
 
-            // Título del documento
-            $nombreEmpresa = $this->empresa ? $this->empresa->nombre : 'Empresa';
-            $titulo = $nombreEmpresa . ' - Informe de Facturas';
-            $subtitulo = 'Del ' . date('d/m/Y', strtotime($this->fechaDesde)) .
-                        ' al ' . date('d/m/Y', strtotime($this->fechaHasta));
+            // Configurar empresa si existe
+            if ($this->empresa && isset($this->empresa->idempresa)) {
+                $exportManager->setCompany($this->empresa->idempresa);
+            }
 
-            // Definir las columnas
-            $columns = [
+            // Título del documento (pasado a newDoc según documentación oficial)
+            $titulo = 'Informe de Facturas - Del ' . date('d/m/Y', strtotime($this->fechaDesde)) .
+                     ' al ' . date('d/m/Y', strtotime($this->fechaHasta));
+
+            $exportManager->newDoc('PDF', $titulo);
+
+            // Definir las columnas (headers como array simple)
+            $headers = [
                 'SERIE', 'Doc.', 'Albarán', 'Fecha', 'Cliente', 'CIF/NIF',
                 'Neto', '%IVA', 'IVA', '%RE', 'RE', 'IRPF', 'Total'
             ];
 
-            // Preparar los datos
+            // Preparar los datos (rows como array de arrays)
             $rows = [];
             foreach ($this->facturasConIVA as $item) {
                 $factura = $item->factura;
@@ -458,7 +463,7 @@ class InformeFacturas extends Controller
                     $factura->codigo,
                     $factura->codalbaran ?? '',
                     date('d/m/Y', strtotime($factura->fecha)),
-                    mb_substr($factura->nombrecliente, 0, 20),
+                    mb_substr($factura->nombrecliente, 0, 25),  // Más caracteres en landscape
                     $factura->cifnif,
                     number_format($factura->neto, 2, ',', '.'),
                     number_format($item->porcentajeIVA, 0, ',', '.'),
@@ -470,38 +475,51 @@ class InformeFacturas extends Controller
                 ];
             }
 
-            // Agregar fila de totales
-            $rows[] = [
-                '', '', '', '', '', 'TOTALES:',
+            // Opciones para alineación de columnas numéricas a la derecha
+            $options = [
+                'cols' => [
+                    'Neto' => ['justification' => 'right'],
+                    '%IVA' => ['justification' => 'right'],
+                    'IVA' => ['justification' => 'right'],
+                    '%RE' => ['justification' => 'right'],
+                    'RE' => ['justification' => 'right'],
+                    'IRPF' => ['justification' => 'right'],
+                    'Total' => ['justification' => 'right']
+                ]
+            ];
+
+            // Generar la tabla principal
+            $exportManager->addTablePage($headers, $rows, $options);
+
+            // Agregar tabla de totales separada
+            $headTotals = ['Concepto', 'Neto', 'IVA', 'Recargo', 'IRPF', 'TOTAL'];
+            $totalRows = [[
+                'TOTALES',
                 number_format($this->totalNeto, 2, ',', '.'),
-                '',
                 number_format($this->totalIVA, 2, ',', '.'),
-                '',
                 number_format($this->totalRecargo, 2, ',', '.'),
                 number_format($this->totalIRPF, 2, ',', '.'),
                 number_format($this->totalGeneral, 2, ',', '.')
+            ]];
+
+            $optionsTotals = [
+                'cols' => [
+                    'Neto' => ['justification' => 'right'],
+                    'IVA' => ['justification' => 'right'],
+                    'Recargo' => ['justification' => 'right'],
+                    'IRPF' => ['justification' => 'right'],
+                    'TOTAL' => ['justification' => 'right']
+                ]
             ];
 
-            // Configurar opciones
-            $options = [
-                'title' => $titulo,
-                'subtitle' => $subtitulo
-            ];
+            $exportManager->addTablePage($headTotals, $totalRows, $optionsTotals);
 
-            // Generar la tabla
-            $exportManager->addTablePage($columns, $rows, $options);
-
-            // SOLUCIÓN PARA ABRIR EN NUEVA PESTAÑA
+            // Configurar respuesta para PDF
             $this->setTemplate(false);
-
-            // Configurar headers para nueva pestaña
-            $filename = 'informe_facturas_' . date('Y-m-d_H-i-s') . '.pdf';
             $this->response->headers->set('Content-Type', 'application/pdf');
-            $this->response->headers->set('Content-Disposition', 'inline; filename="' . $filename . '"');
-            $this->response->headers->set('Cache-Control', 'private, max-age=0, must-revalidate');
-            $this->response->headers->set('Pragma', 'public');
+            $this->response->headers->set('Content-Disposition', 'inline; filename="informe_facturas_' . date('Y-m-d_His') . '.pdf"');
 
-            // Mostrar el PDF
+            // Generar y mostrar el PDF
             $exportManager->show($this->response);
 
         } catch (\Exception $e) {

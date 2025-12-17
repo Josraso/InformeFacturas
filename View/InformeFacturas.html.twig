@@ -72,19 +72,27 @@
 
                         <div class="row mb-3">
                             <div class="col-md-6">
-                                <label for="cliente" class="form-label">Cliente</label>
-                                <select class="form-select" id="cliente" name="cliente">
+                                <label for="buscar-cliente" class="form-label">Cliente</label>
+                                <input type="text"
+                                       class="form-control mb-2"
+                                       id="buscar-cliente"
+                                       placeholder="Escribe para buscar cliente..."
+                                       autocomplete="off">
+                                <select class="form-select" id="cliente" name="cliente" size="8">
                                     <option value="">Todos los clientes</option>
                                     {% if fsc.clientes is defined %}
                                         {% for cliente in fsc.clientes %}
                                             <option value="{{ cliente.codcliente }}"
+                                                    data-texto="{{ cliente.codcliente }} - {{ cliente.razonsocial|default(cliente.nombre) }}"
                                                     {% if cliente.codcliente == fsc.clienteSeleccionado|default('') %}selected{% endif %}>
                                                 {{ cliente.codcliente }} - {{ cliente.razonsocial|default(cliente.nombre) }}
                                             </option>
                                         {% endfor %}
                                     {% endif %}
                                 </select>
-                                <small class="form-text text-muted">Pulsa Ctrl+F para buscar en el navegador</small>
+                                <small class="form-text text-muted">
+                                    <span id="clientes-mostrados">{{ fsc.clientes|length }}</span> clientes mostrados
+                                </small>
                             </div>
                         </div>
 
@@ -322,7 +330,7 @@ function enviarFormularioExportacion(accion) {
     document.body.removeChild(form);
 }
 
-// Validación de fechas
+// Validación de fechas y buscador de clientes
 document.addEventListener('DOMContentLoaded', function() {
     const fechaDesde = document.getElementById('fecha_desde');
     const fechaHasta = document.getElementById('fecha_hasta');
@@ -340,6 +348,67 @@ document.addEventListener('DOMContentLoaded', function() {
     if (fechaDesde && fechaHasta) {
         fechaDesde.addEventListener('change', validarFechas);
         fechaHasta.addEventListener('change', validarFechas);
+    }
+
+    // Buscador de clientes en tiempo real
+    const buscarCliente = document.getElementById('buscar-cliente');
+    const selectCliente = document.getElementById('cliente');
+    const clientesMostrados = document.getElementById('clientes-mostrados');
+
+    if (buscarCliente && selectCliente) {
+        // Guardar todas las opciones originales
+        const todasLasOpciones = Array.from(selectCliente.options);
+
+        buscarCliente.addEventListener('input', function() {
+            const termino = this.value.toLowerCase().trim();
+
+            // Limpiar el select
+            selectCliente.innerHTML = '';
+
+            // Contador de resultados
+            let contador = 0;
+
+            // Filtrar y mostrar opciones
+            todasLasOpciones.forEach(function(opcion) {
+                // La primera opción "Todos los clientes" siempre se muestra
+                if (opcion.value === '' ||
+                    opcion.getAttribute('data-texto').toLowerCase().includes(termino)) {
+                    selectCliente.appendChild(opcion.cloneNode(true));
+                    if (opcion.value !== '') {
+                        contador++;
+                    }
+                }
+            });
+
+            // Actualizar contador
+            if (clientesMostrados) {
+                clientesMostrados.textContent = contador;
+            }
+
+            // Si solo hay una opción (además de "Todos"), seleccionarla automáticamente
+            if (contador === 1 && selectCliente.options.length === 2) {
+                selectCliente.selectedIndex = 1;
+            } else if (contador === 0) {
+                // Si no hay resultados, mostrar mensaje
+                const noResultados = document.createElement('option');
+                noResultados.textContent = 'No se encontraron clientes';
+                noResultados.disabled = true;
+                selectCliente.appendChild(noResultados);
+            }
+        });
+
+        // Limpiar búsqueda con tecla Escape
+        buscarCliente.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                this.value = '';
+                this.dispatchEvent(new Event('input'));
+            }
+        });
+
+        // Enfocar automáticamente el input de búsqueda cuando se hace clic en el select
+        selectCliente.addEventListener('focus', function() {
+            buscarCliente.focus();
+        });
     }
 });
 </script>
